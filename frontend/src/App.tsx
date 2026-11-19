@@ -1,11 +1,11 @@
 import {
   Activity,
+  ArrowUpRight,
   Check,
   Disc,
   Info,
   Palette,
   RotateCcw,
-  Share2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CaliperSelector } from './components/customizer/CaliperSelector'
@@ -18,6 +18,7 @@ import { VehicleViewer } from './components/viewer/VehicleViewer'
 import {
   fallbackPorscheData,
   fetchConfiguratorData,
+  getLocalCatalogVehicles,
   saveVehicleConfiguration,
 } from './services/api'
 import type {
@@ -30,6 +31,7 @@ import type {
 } from './types/configurator'
 
 export function App() {
+  const [activeSlug, setActiveSlug] = useState<string>('toyota-gr-supra-a90')
   const [data, setData] = useState<ConfiguratorData>(fallbackPorscheData)
   const [selectedOptions, setSelectedOptions] = useState<SelectedConfiguration>(
     fallbackPorscheData.default_configuration.selected_options
@@ -38,17 +40,17 @@ export function App() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
   const [resetNotification, setResetNotification] = useState(false)
 
-  // Fetch configurator payload from Laravel backend
+  const catalogVehicles = useMemo(() => getLocalCatalogVehicles(), [])
+
   useEffect(() => {
-    fetchConfiguratorData('porsche-911-carrera').then((res) => {
+    fetchConfiguratorData(activeSlug).then((res) => {
       setData(res)
       if (res.default_configuration?.selected_options) {
         setSelectedOptions(res.default_configuration.selected_options)
       }
     })
-  }, [])
+  }, [activeSlug])
 
-  // Resolve active paint, wheel, and caliper properties
   const activePaintOption = useMemo(() => {
     const code = selectedOptions.paint
     return (
@@ -73,7 +75,6 @@ export function App() {
     )
   }, [data, selectedOptions.calipers])
 
-  // Calculate dynamic total price
   const totalPrice = useMemo(() => {
     let price = data.vehicle.base_price
     price += activePaintOption.price_delta
@@ -82,7 +83,6 @@ export function App() {
     return price
   }, [data.vehicle.base_price, activePaintOption, activeWheelOption, activeCaliperOption])
 
-  // Handle option selection
   const handleSelectOption = (categoryCode: string, option: CustomizationOption) => {
     setSelectedOptions((prev) => ({
       ...prev,
@@ -90,111 +90,95 @@ export function App() {
     }))
   }
 
-  // Reset to original factory defaults
   const handleReset = () => {
     setSelectedOptions(data.default_configuration.selected_options)
     setResetNotification(true)
     setTimeout(() => setResetNotification(false), 2000)
   }
 
-  // Save build handler
+  const handleSelectVehicle = (slug: string) => {
+    setActiveSlug(slug)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const handleSaveBuild = async (name: string) => {
-    const result = await saveVehicleConfiguration(data.vehicle.id, selectedOptions, name)
-    return result
+    return saveVehicleConfiguration(data.vehicle.id, selectedOptions, name)
   }
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-zinc-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans">
       <Navbar
         currentVehicleName={data.vehicle.name}
         manufacturerName={data.vehicle.manufacturer.name}
+        onOpenSave={() => setIsSaveModalOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
-        {/* Main Configurator Row: 3D Viewport + Studio Controls */}
+      {/* Primary Configurator Showroom */}
+      <main id="studio" className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-6 space-y-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Left Column: Interactive 3D Canvas */}
-          <div className="lg:col-span-8 flex flex-col">
+          {/* 3D Viewport */}
+          <div className="lg:col-span-8 xl:col-span-9 flex flex-col">
             <VehicleViewer
               paint={activePaintOption.properties as PaintProperties}
               wheel={activeWheelOption.properties as WheelProperties}
               caliper={activeCaliperOption.properties as CaliperProperties}
+              bodyStyle={data.vehicle.body_style}
+              manufacturerName={data.vehicle.manufacturer.name}
+              vehicleName={data.vehicle.name}
+              year={data.vehicle.year}
             />
           </div>
 
-          {/* Right Column: Customization Studio Panel */}
-          <div className="lg:col-span-4 flex flex-col justify-between p-5 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-zinc-800/80 shadow-2xl">
-            <div className="space-y-5">
-              {/* Vehicle Title & Dynamic Price */}
-              <div className="border-b border-zinc-800/80 pb-4">
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">
-                  <span>{data.vehicle.manufacturer.name} • {data.vehicle.year}</span>
-                  <span className="text-emerald-400">Custom Spec</span>
-                </div>
-                <h1 className="text-2xl font-bold tracking-tight text-white m-0">
-                  {data.vehicle.name}
-                </h1>
+          {/* Right-hand Atelier Panel */}
+          <aside className="lg:col-span-4 xl:col-span-3 flex flex-col justify-between p-6 bg-zinc-950 border border-white/10">
+            <div className="space-y-6">
+              {/* Header & Dynamic MSRP */}
+              <div className="border-b border-white/10 pb-5">
+                <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-medium">
+                  Configuration Summary
+                </span>
                 <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-xs text-zinc-400">Total Vehicle MSRP</span>
-                  <span className="text-xl font-extrabold text-white">
+                  <span className="text-xs text-zinc-400">Configured MSRP</span>
+                  <span className="font-serif text-3xl font-medium text-white tracking-tight">
                     ${totalPrice.toLocaleString()}
                   </span>
                 </div>
+                <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">
+                  {data.vehicle.description}
+                </p>
               </div>
 
-              {/* Category Selector Tabs */}
-              <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
-                <button
-                  onClick={() => setActiveTab('paint')}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-medium transition-all ${
-                    activeTab === 'paint'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Palette className="w-4 h-4 mb-1" />
-                  <span>Paint</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('wheels')}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-medium transition-all ${
-                    activeTab === 'wheels'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Disc className="w-4 h-4 mb-1" />
-                  <span>Wheels</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('calipers')}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-medium transition-all ${
-                    activeTab === 'calipers'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Activity className="w-4 h-4 mb-1" />
-                  <span>Brakes</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('specs')}
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg text-xs font-medium transition-all ${
-                    activeTab === 'specs'
-                      ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  <Info className="w-4 h-4 mb-1" />
-                  <span>Specs</span>
-                </button>
+              {/* Minimalist Category Tabs */}
+              <div className="grid grid-cols-4 border border-white/10 bg-black">
+                {(
+                  [
+                    { id: 'paint', label: 'Paint', icon: Palette },
+                    { id: 'wheels', label: 'Wheels', icon: Disc },
+                    { id: 'calipers', label: 'Brakes', icon: Activity },
+                    { id: 'specs', label: 'Specs', icon: Info },
+                  ] as const
+                ).map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex flex-col items-center justify-center py-2.5 px-1 text-[10px] uppercase tracking-[0.14em] font-medium transition-colors border-r last:border-r-0 border-white/10 ${
+                        isActive
+                          ? 'bg-white text-black'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5 mb-1" />
+                      <span>{tab.label}</span>
+                    </button>
+                  )
+                })}
               </div>
 
-              {/* Active Tab Panel Content */}
-              <div className="min-h-[220px]">
+              {/* Active Option Selector */}
+              <div className="min-h-[250px]">
                 {activeTab === 'paint' && (
                   <PaintSelector
                     options={data.customization_categories.paint.options}
@@ -225,19 +209,19 @@ export function App() {
               </div>
             </div>
 
-            {/* Bottom Actions Bar */}
-            <div className="pt-4 border-t border-zinc-800/80 space-y-3">
+            {/* Bottom Action Bar */}
+            <div className="pt-5 border-t border-white/10 space-y-3 mt-6">
               {resetNotification && (
-                <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                  <Check className="w-3.5 h-3.5" /> Restored factory baseline
+                <div className="flex items-center justify-center gap-1.5 text-[11px] uppercase tracking-wider text-white py-1.5 bg-zinc-900 border border-white/20">
+                  <Check className="w-3.5 h-3.5" /> Restored Factory Baseline
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   onClick={handleReset}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 text-xs font-semibold transition-all"
-                  title="Reset to initial factory baseline"
+                  className="flex items-center justify-center gap-1.5 px-4 py-3 bg-black hover:bg-zinc-900 text-zinc-300 hover:text-white border border-white/15 text-[11px] uppercase tracking-[0.15em] font-medium transition-colors"
+                  title="Reset to factory standard"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset</span>
@@ -245,68 +229,133 @@ export function App() {
 
                 <button
                   onClick={() => setIsSaveModalOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-blue-500/25 transition-all"
+                  className="flex-1 py-3 px-4 bg-white text-black hover:bg-zinc-200 font-semibold text-[11px] uppercase tracking-[0.16em] transition-colors text-center"
                 >
-                  <Share2 className="w-4 h-4" />
-                  <span>Save Configuration</span>
+                  Save & Share Build
                 </button>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
 
-        {/* Vehicle Catalogue Section */}
-        <section id="catalogue" className="mt-8 pt-8 border-t border-zinc-800/80 space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Performance Highlights Strip */}
+        <section
+          id="engineering"
+          className="border-y border-white/10 py-10 grid grid-cols-2 md:grid-cols-4 gap-8"
+        >
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              Engine Architecture
+            </span>
+            <p className="font-serif text-xl sm:text-2xl text-white mt-1.5">
+              {data.vehicle.specifications.engine}
+            </p>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              Peak Output
+            </span>
+            <p className="font-serif text-xl sm:text-2xl text-white mt-1.5">
+              {data.vehicle.specifications.power_hp} hp
+            </p>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              Acceleration (0–60 mph)
+            </span>
+            <p className="font-serif text-xl sm:text-2xl text-white mt-1.5">
+              {data.vehicle.specifications.acceleration_0_60_mph} seconds
+            </p>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              Top Track Speed
+            </span>
+            <p className="font-serif text-xl sm:text-2xl text-white mt-1.5">
+              {data.vehicle.specifications.top_speed_mph} mph
+            </p>
+          </div>
+        </section>
+
+        {/* Editorial Fleet / Model Lineup */}
+        <section id="fleet" className="space-y-8 pb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-white tracking-tight m-0">
-                Explore Vehicle Lineup
+              <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-500 font-medium">
+                The 2026 Collection
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl font-medium text-white mt-1">
+                Select Your Vehicle
               </h2>
-              <p className="text-xs text-zinc-400">
-                Select a high-performance machine to configure in the 3D studio.
-              </p>
             </div>
-            <span className="text-xs text-blue-400 font-medium">AutoStudio 2026 Fleet</span>
+            <p className="text-xs text-zinc-400 max-w-md">
+              Choose a model below to load its bespoke proportions, factory paint palette, and
+              performance specifications into the 3D Atelier.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Active Carrera Card */}
-            <div className="p-5 rounded-2xl bg-zinc-900/60 border-2 border-blue-500/80 shadow-lg shadow-blue-500/10 relative overflow-hidden">
-              <span className="absolute top-4 right-4 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40">
-                Active in Studio
-              </span>
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Porsche • 2026
-              </p>
-              <h3 className="text-lg font-bold text-white mt-1">911 Carrera</h3>
-              <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
-                Twin-turbo boxer 6 engine, rear-engine architecture, precision sports coupe.
-              </p>
-              <div className="mt-4 flex items-center justify-between text-xs pt-3 border-t border-zinc-800">
-                <span className="text-zinc-400">From $120,100</span>
-                <span className="font-semibold text-emerald-400">388 HP • 3.9s 0-60</span>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {catalogVehicles.map((vehicle) => {
+              const isCurrent = vehicle.slug === activeSlug
+              return (
+                <div
+                  key={vehicle.slug}
+                  onClick={() => handleSelectVehicle(vehicle.slug)}
+                  className={`group cursor-pointer p-7 border transition-all flex flex-col justify-between min-h-[240px] ${
+                    isCurrent
+                      ? 'bg-zinc-950 border-white'
+                      : 'bg-zinc-950/50 border-white/10 hover:border-white/40 hover:bg-zinc-950'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-medium">
+                        {vehicle.manufacturer.name} • {vehicle.year}
+                      </span>
+                      {isCurrent ? (
+                        <span className="text-[10px] uppercase tracking-[0.18em] px-2.5 py-0.5 bg-white text-black font-semibold">
+                          In Studio
+                        </span>
+                      ) : (
+                        <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
+                      )}
+                    </div>
 
-            {/* Mercedes-Benz C-Class (Next Model in Catalogue) */}
-            <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80 opacity-75 hover:opacity-100 transition-opacity">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Mercedes-Benz • 2026
-              </span>
-              <h3 className="text-lg font-bold text-white mt-1">C-Class Sedan</h3>
-              <p className="text-xs text-zinc-400 mt-1 line-clamp-2">
-                Executive styling, mild hybrid powertrain, and cutting-edge digital luxury.
-              </p>
-              <div className="mt-4 flex items-center justify-between text-xs pt-3 border-t border-zinc-800">
-                <span className="text-zinc-400">From $46,950</span>
-                <span className="text-zinc-400">Coming Soon</span>
-              </div>
-            </div>
+                    <h3 className="font-serif text-2xl font-medium text-white mt-3">
+                      {vehicle.name}
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-2 leading-relaxed line-clamp-2">
+                      {vehicle.description}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                    <span className="text-zinc-400">
+                      From{' '}
+                      <strong className="text-white font-medium">
+                        ${vehicle.base_price.toLocaleString()}
+                      </strong>
+                    </span>
+                    <span className="text-zinc-400">
+                      {vehicle.specifications.power_hp} hp •{' '}
+                      {vehicle.specifications.acceleration_0_60_mph}s
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       </main>
 
-      {/* Save / Share Configuration Modal */}
+      {/* Luxury Minimalist Footer */}
+      <footer className="border-t border-white/10 bg-black py-8 px-4 sm:px-8">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-zinc-500 tracking-wider uppercase">
+          <span>© 2026 AutoStudio Bespoke Atelier</span>
+          <span>Real-Time 3D Automotive Configuration Platform</span>
+        </div>
+      </footer>
+
       <SaveModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}

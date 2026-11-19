@@ -84,6 +84,7 @@ export interface Vehicle {
   year: number
   base_price: number
   description: string
+  body_style?: 'coupe' | 'gt' | 'sedan' | 'supra'
   specifications: VehicleSpecifications
   manufacturer: Manufacturer
 }

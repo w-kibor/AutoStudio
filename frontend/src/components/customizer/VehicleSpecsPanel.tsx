@@ -1,4 +1,3 @@
-import { Activity, Gauge, Shield, Zap } from 'lucide-react'
 import React from 'react'
 import type { VehicleSpecifications } from '../../types/configurator'
 
@@ -8,50 +7,57 @@ interface VehicleSpecsPanelProps {
 
 export const VehicleSpecsPanel: React.FC<VehicleSpecsPanelProps> = ({ specs }) => {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">Performance Specs</span>
-        <span className="text-xs text-blue-400 font-medium">Factory Official</span>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-medium">
+          Technical Data
+        </span>
+        <span className="text-[11px] text-zinc-400">Factory Spec</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-1">
-            <Zap className="w-3.5 h-3.5 text-amber-400" /> Max Power
+        <div className="p-3.5 bg-zinc-950 border border-white/10">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Output</span>
+          <div className="text-xl font-serif font-medium text-white mt-1">
+            {specs.power_hp} <span className="text-xs font-sans text-zinc-400">HP</span>
           </div>
-          <div className="text-lg font-bold text-zinc-100">{specs.power_hp} <span className="text-xs font-normal text-zinc-400">HP</span></div>
         </div>
 
-        <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-1">
-            <Activity className="w-3.5 h-3.5 text-emerald-400" /> 0 - 60 mph
+        <div className="p-3.5 bg-zinc-950 border border-white/10">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">0–60 mph</span>
+          <div className="text-xl font-serif font-medium text-white mt-1">
+            {specs.acceleration_0_60_mph}{' '}
+            <span className="text-xs font-sans text-zinc-400">sec</span>
           </div>
-          <div className="text-lg font-bold text-zinc-100">{specs.acceleration_0_60_mph} <span className="text-xs font-normal text-zinc-400">sec</span></div>
         </div>
 
-        <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-1">
-            <Gauge className="w-3.5 h-3.5 text-rose-400" /> Top Speed
+        <div className="p-3.5 bg-zinc-950 border border-white/10">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Top Speed</span>
+          <div className="text-xl font-serif font-medium text-white mt-1">
+            {specs.top_speed_mph} <span className="text-xs font-sans text-zinc-400">mph</span>
           </div>
-          <div className="text-lg font-bold text-zinc-100">{specs.top_speed_mph} <span className="text-xs font-normal text-zinc-400">mph</span></div>
         </div>
 
-        <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
-          <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-1">
-            <Shield className="w-3.5 h-3.5 text-blue-400" /> Drivetrain
+        <div className="p-3.5 bg-zinc-950 border border-white/10">
+          <span className="text-[10px] uppercase tracking-[0.15em] text-zinc-500">Torque</span>
+          <div className="text-xl font-serif font-medium text-white mt-1">
+            {specs.torque_lb_ft ?? '—'} <span className="text-xs font-sans text-zinc-400">lb-ft</span>
           </div>
-          <div className="text-xs font-semibold text-zinc-100 truncate">{specs.drivetrain}</div>
         </div>
       </div>
 
-      <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-2 text-xs">
-        <div className="flex justify-between text-zinc-400">
-          <span>Engine</span>
-          <span className="font-medium text-zinc-200">{specs.engine}</span>
+      <div className="bg-zinc-950 border border-white/10 divide-y divide-white/10 text-xs">
+        <div className="flex justify-between p-3">
+          <span className="text-zinc-500">Powertrain</span>
+          <span className="font-medium text-zinc-200 text-right">{specs.engine}</span>
         </div>
-        <div className="flex justify-between text-zinc-400">
-          <span>Transmission</span>
-          <span className="font-medium text-zinc-200">{specs.transmission}</span>
+        <div className="flex justify-between p-3">
+          <span className="text-zinc-500">Drivetrain</span>
+          <span className="font-medium text-zinc-200 text-right">{specs.drivetrain}</span>
+        </div>
+        <div className="flex justify-between p-3">
+          <span className="text-zinc-500">Transmission</span>
+          <span className="font-medium text-zinc-200 text-right">{specs.transmission}</span>
         </div>
       </div>
     </div>

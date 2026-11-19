@@ -1,4 +1,4 @@
-import { Check, Copy, Share2, X } from 'lucide-react'
+import { Check, Copy, X } from 'lucide-react'
 import React, { useState } from 'react'
 
 interface SaveModalProps {
@@ -16,7 +16,7 @@ export const SaveModal: React.FC<SaveModalProps> = ({
   totalPrice,
   vehicleName,
 }) => {
-  const [buildName, setBuildName] = useState(`${vehicleName} Custom Edition`)
+  const [buildName, setBuildName] = useState(`${vehicleName} Bespoke Spec`)
   const [isSaving, setIsSaving] = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -41,44 +41,48 @@ export const SaveModal: React.FC<SaveModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-700/80 p-6 shadow-2xl text-zinc-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+      <div className="relative w-full max-w-md bg-zinc-950 border border-white/20 p-7 shadow-2xl text-zinc-100">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors"
+          className="absolute top-5 right-5 text-zinc-400 hover:text-white transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2.5 mb-4 text-blue-400">
-          <Share2 className="w-5 h-5" />
-          <h3 className="text-lg font-semibold text-white">Save & Share Build</h3>
+        <div className="mb-6">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+            AutoStudio Atelier
+          </span>
+          <h3 className="font-serif text-2xl font-medium text-white mt-1">
+            Save Configuration
+          </h3>
         </div>
 
         {!shareToken ? (
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-5">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">
-                Configuration Name
+              <label className="block text-[10px] uppercase tracking-[0.18em] text-zinc-400 mb-2">
+                Commission Title
               </label>
               <input
                 type="text"
                 value={buildName}
                 onChange={(e) => setBuildName(e.target.value)}
                 required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-700 focus:outline-none focus:border-blue-500 text-sm text-zinc-100 placeholder-zinc-500"
-                placeholder="e.g. My GT Silver Track Spec"
+                className="w-full px-3.5 py-2.5 bg-black border border-white/20 focus:outline-none focus:border-white text-sm text-white placeholder-zinc-600"
+                placeholder="e.g. Obsidian GT Track Spec"
               />
             </div>
 
-            <div className="p-3 rounded-xl bg-zinc-950/60 border border-zinc-800 text-xs space-y-1.5">
+            <div className="p-4 bg-black border border-white/10 text-xs space-y-2">
               <div className="flex justify-between text-zinc-400">
-                <span>Configured Model</span>
-                <span className="text-zinc-200">{vehicleName}</span>
+                <span>Model</span>
+                <span className="text-white font-medium">{vehicleName}</span>
               </div>
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-zinc-400 pt-2 border-t border-white/10">
                 <span>Total MSRP</span>
-                <span className="font-semibold text-emerald-400">
+                <span className="font-semibold text-white">
                   ${totalPrice.toLocaleString()}
                 </span>
               </div>
@@ -87,39 +91,39 @@ export const SaveModal: React.FC<SaveModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
+              className="w-full py-3 px-4 bg-white text-black hover:bg-zinc-200 font-semibold text-xs uppercase tracking-[0.18em] transition-all disabled:opacity-50"
             >
-              {isSaving ? 'Saving Configuration...' : 'Generate Share Link'}
+              {isSaving ? 'Generating Code...' : 'Generate Configuration Code'}
             </button>
           </form>
         ) : (
-          <div className="space-y-4 text-center py-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto">
-              <Check className="w-6 h-6" />
+          <div className="space-y-5 text-center py-2">
+            <div className="w-12 h-12 rounded-full bg-white/10 text-white border border-white/20 flex items-center justify-center mx-auto">
+              <Check className="w-5 h-5" />
             </div>
 
             <div>
-              <h4 className="font-semibold text-zinc-100">Configuration Saved!</h4>
+              <h4 className="font-serif text-xl text-white">Build Saved</h4>
               <p className="text-xs text-zinc-400 mt-1">
-                Your unique configuration token has been generated.
+                Share or retrieve your configuration anytime using your unique code.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
-              <span className="font-mono text-xs text-blue-400 flex-1 truncate">
-                Token: {shareToken}
+            <div className="flex items-center gap-2 p-3 bg-black border border-white/15">
+              <span className="font-mono text-xs text-white flex-1 truncate">
+                {shareToken}
               </span>
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black hover:bg-zinc-200 text-[11px] font-semibold uppercase tracking-wider transition-colors"
               >
                 {copied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" /> Copied!
+                    <Check className="w-3.5 h-3.5" /> Copied
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5" /> Copy Link
+                    <Copy className="w-3.5 h-3.5" /> Copy
                   </>
                 )}
               </button>
@@ -127,9 +131,9 @@ export const SaveModal: React.FC<SaveModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-2 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-colors"
+              className="w-full py-2.5 px-4 border border-white/20 hover:bg-white/10 text-zinc-300 text-xs uppercase tracking-[0.15em] transition-colors"
             >
-              Close
+              Return to Studio
             </button>
           </div>
         )}
