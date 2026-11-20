@@ -1,10 +1,10 @@
-import { ContactShadows, OrbitControls } from '@react-three/drei'
+import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
-import { Box, Eye, Lightbulb, Moon, RotateCw, Sun, Upload, X } from 'lucide-react'
-import React, { Suspense, useRef, useState } from 'react'
+import { Box, Eye, Layers, Lightbulb, Moon, RotateCw, Sun, Upload, X } from 'lucide-react'
+import React, { Suspense, useCallback, useRef, useState } from 'react'
 import type { CaliperProperties, PaintProperties, WheelProperties } from '../../types/configurator'
 import { CarMesh } from './CarMesh'
-import { GlbCarModel } from './GlbCarModel'
+import { GlbCarModel, type MaterialRole } from './GlbCarModel'
 import { SupraMesh } from './SupraMesh'
 
 interface VehicleViewerProps {
@@ -34,6 +34,9 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
   const [wireframe, setWireframe] = useState(false)
   const [customGlbUrl, setCustomGlbUrl] = useState<string | null>(null)
   const [customGlbName, setCustomGlbName] = useState<string | null>(null)
+  const [detectedMaterials, setDetectedMaterials] = useState<string[]>([])
+  const [materialRoles, setMaterialRoles] = useState<Record<string, MaterialRole>>({})
+  const [showMaterialEditor, setShowMaterialEditor] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
   const controlsRef = useRef<any>(null)
@@ -68,6 +71,9 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
     const objectUrl = URL.createObjectURL(file)
     setCustomGlbUrl(objectUrl)
     setCustomGlbName(file.name)
+    setDetectedMaterials([])
+    setMaterialRoles({})
+    setShowMaterialEditor(false)
   }
 
   const handleClearGlb = () => {
@@ -76,7 +82,14 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
     }
     setCustomGlbUrl(null)
     setCustomGlbName(null)
+    setDetectedMaterials([])
+    setMaterialRoles({})
+    setShowMaterialEditor(false)
   }
+
+  const handleMaterialsDetected = useCallback((materials: string[]) => {
+    setDetectedMaterials(materials)
+  }, [])
 
   const isDaylight = studioLight === 'daylight'
 
@@ -111,26 +124,70 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
         }}
       />
 
-      {/* 3D Canvas */}
+      {/* 3D Canvas with HiDPI support & Studio Environment Reflections */}
       <Canvas
         shadows
+        dpr={[1, 2]}
         camera={{ position: [4.6, 1.7, 5.0], fov: 40 }}
-        gl={{ antialias: true, toneMappingExposure: isDaylight ? 1.35 : 1.12 }}
+        gl={{ antialias: true, toneMappingExposure: isDaylight ? 1.3 : 1.1 }}
       >
-        <ambientLight intensity={isDaylight ? 1.05 : 0.7} />
+        <ambientLight intensity={isDaylight ? 0.9 : 0.55} />
 
         <directionalLight
           position={[5, 8, 6]}
-          intensity={isDaylight ? 2.6 : 2.1}
+          intensity={isDaylight ? 2.4 : 1.9}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-bias={-0.0005}
         />
 
-        <directionalLight position={[-6, 4, -5]} color="#93c5fd" intensity={isDaylight ? 1.4 : 1.1} />
-        <directionalLight position={[0, 8, 0]} intensity={isDaylight ? 0.95 : 0.65} />
-        <hemisphereLight args={[isDaylight ? '#ffffff' : '#e4e4e7', '#181b20', isDaylight ? 0.9 : 0.65]} />
+        <directionalLight position={[-6, 4, -5]} color="#93c5fd" intensity={isDaylight ? 1.2 : 0.9} />
+        <hemisphereLight args={[isDaylight ? '#ffffff' : '#e4e4e7', '#181b20', isDaylight ? 0.8 : 0.55]} />
+
+        {/* Procedural Studio Environment Map for crisp car paint & clearcoat reflections */}
+        <Environment resolution={256} frames={1}>
+          <Lightformer
+            form="rect"
+            intensity={isDaylight ? 3.5 : 2.5}
+            color="#ffffff"
+            scale={[10, 4, 1]}
+            position={[0, 6, 0]}
+            rotation={[Math.PI / 2, 0, 0]}
+          />
+          <Lightformer
+            form="rect"
+            intensity={2.2}
+            color="#e2e8f0"
+            scale={[10, 2, 1]}
+            position={[0, 2.5, 7]}
+            rotation={[0, Math.PI, 0]}
+          />
+          <Lightformer
+            form="rect"
+            intensity={1.8}
+            color="#cbd5e1"
+            scale={[10, 2, 1]}
+            position={[0, 2.5, -7]}
+            rotation={[0, 0, 0]}
+          />
+          <Lightformer
+            form="rect"
+            intensity={1.6}
+            color="#ffffff"
+            scale={[8, 2, 1]}
+            position={[-7, 2.5, 0]}
+            rotation={[0, Math.PI / 2, 0]}
+          />
+          <Lightformer
+            form="rect"
+            intensity={1.6}
+            color="#ffffff"
+            scale={[8, 2, 1]}
+            position={[7, 2.5, 0]}
+            rotation={[0, -Math.PI / 2, 0]}
+          />
+        </Environment>
 
         <Suspense fallback={null}>
           {customGlbUrl ? (
@@ -141,6 +198,8 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
               caliper={caliper}
               wireframe={wireframe}
               isSpinning={autoRotate}
+              materialRoles={materialRoles}
+              onMaterialsDetected={handleMaterialsDetected}
             />
           ) : bodyStyle === 'supra' ? (
             <SupraMesh
@@ -185,7 +244,9 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
         <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center pointer-events-none">
           <Upload className="w-10 h-10 text-white mb-3 animate-bounce" />
           <p className="font-serif text-2xl text-white">Drop .GLB / .GLTF Vehicle Model</p>
-          <p className="text-xs text-zinc-400 mt-1">AutoStudio will auto-scale and bind paint & wheel shaders</p>
+          <p className="text-xs text-zinc-400 mt-1">
+            AutoStudio will auto-scale and bind paint & wheel shaders
+          </p>
         </div>
       )}
 
@@ -212,11 +273,26 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
         <button
           onClick={() => fileInputRef.current?.click()}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-black hover:bg-zinc-200 border border-white text-[11px] uppercase tracking-wider font-semibold transition-all"
-          title="Load a real .GLB or .GLTF 3D vehicle model (e.g. A90 Supra from Sketchfab)"
+          title="Load a real .GLB or .GLTF 3D vehicle model"
         >
           <Upload className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Load .GLB</span>
         </button>
+
+        {customGlbUrl && detectedMaterials.length > 0 && (
+          <button
+            onClick={() => setShowMaterialEditor(!showMaterialEditor)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 backdrop-blur-md border text-[11px] uppercase tracking-wider font-medium transition-all ${
+              showMaterialEditor
+                ? 'bg-white text-black border-white'
+                : 'bg-black/60 text-zinc-300 border-white/15 hover:bg-black/90 hover:text-white'
+            }`}
+            title="Assign .GLB materials to Paint, Wheels, or Calipers"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Materials</span>
+          </button>
+        )}
 
         {!customGlbUrl && (
           <button
@@ -268,6 +344,48 @@ export const VehicleViewer: React.FC<VehicleViewerProps> = ({
           <span className="hidden sm:inline">{autoRotate ? '360° ON' : '360°'}</span>
         </button>
       </div>
+
+      {/* Material Role Assignment Drawer (when .GLB is loaded) */}
+      {showMaterialEditor && customGlbUrl && (
+        <div className="absolute top-16 right-6 z-20 w-72 max-h-80 overflow-y-auto bg-zinc-950/95 backdrop-blur-xl border border-white/20 p-4 shadow-2xl space-y-3">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-400 font-semibold">
+              GLB Material Mapping
+            </span>
+            <button
+              onClick={() => setShowMaterialEditor(false)}
+              className="text-zinc-400 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {detectedMaterials.map((matName) => (
+              <div key={matName} className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-zinc-300 truncate flex-1" title={matName}>
+                  {matName}
+                </span>
+                <select
+                  value={materialRoles[matName] || 'auto'}
+                  onChange={(e) =>
+                    setMaterialRoles((prev) => ({
+                      ...prev,
+                      [matName]: e.target.value as MaterialRole,
+                    }))
+                  }
+                  className="bg-black border border-white/20 text-[11px] text-white px-1.5 py-1 focus:outline-none"
+                >
+                  <option value="auto">Auto</option>
+                  <option value="paint">Body Paint</option>
+                  <option value="wheels">Wheels</option>
+                  <option value="calipers">Calipers</option>
+                  <option value="ignore">Ignore</option>
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Bottom-Center Camera Angle Presets */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 p-1 bg-black/75 backdrop-blur-xl border border-white/15 shadow-2xl">
